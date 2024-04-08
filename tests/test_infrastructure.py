@@ -1,10 +1,22 @@
 """
 This module contains the tests for the Infrastructure layer
 """
+import json
+import logging
 import unittest
 from unittest.mock import patch, mock_open
 
 import context
+
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.ERROR
+)
+
+def load_test_cases(name: str) -> dict[str, str]:
+    """Load generic test cases definition from JSON files"""
+    with open(f"./tests/data/infrastructure/{name}.json") as f:
+        return json.load(f)
 
 class TestInfrastructureLayer(unittest.IsolatedAsyncioTestCase):
     """
@@ -137,3 +149,72 @@ CmaFree:           15444 kB"""
 
         for key, value in expected.items():
             assert mem[key] == value, f"Unexpected value for {key}, value: {mem[key]}"
+
+    async def test_os_allowed_cmds(self):
+        """
+        This method tests the allowed commands
+        """
+
+        # Load test cases from JSON file
+        test_cases: dict[str, str] = load_test_cases("allowed_cmds_uc")
+
+        for tc in test_cases:
+            logging.info("Test case %i: %s", tc['id'], tc['name'])
+            assert \
+                context.app.infrastructure.cmd._is_command_allowed(tc['command']) == \
+                tc['allowed'], "Unexpected permissions for test case"
+
+    def test_get_disk_usage(self):
+        """
+        This method tests the get disk usage function
+        """
+        expected_partitions: list[str] = [
+            "/"
+        ]
+        
+        get_disk_data: dict[str, int] = context.app.infrastructure.cmd.get_disk_usage()
+
+        for partition in expected_partitions:
+            assert partition in [dev_data['mount'] for dev, dev_data in get_disk_data.items()], \
+                f"Partition {partition} not found in disk data"
+
+        logging.debug("Disk info: \n%s", json.dumps(get_disk_data, indent=4))
+
+    async def test_read_net_info(self):
+        """
+        This method tests the read net info function
+        """
+
+        expected_ifaces: list[str] = [
+            "eth0",
+            "lo"
+        ]
+
+        net_info: dict[str, int] = await context.app.infrastructure.files.get_net_info()
+
+        for iface in expected_ifaces:
+            assert iface in net_info, f"Interface {iface} not found in net info"
+
+        logging.debug("Net info: \n%s", json.dumps(net_info, indent=4))
+
+    @patch('context.app.infrastructure.cmd.exec_cmd')
+    def test_get_net_info(self, exec_cmd_mock):
+        """
+        This method tests the get net info function
+        """
+        test_ifaces: dict[str, str] = {
+            "wlan0": """wlan0     IEEE 802.11  ESSID:"TP-Link_0013"
+Mode:Managed  Frequency:2.447 GHz  Access Point: 28:87:BA:50:00:13
+Bit Rate=72.2 Mb/s   Tx-Power=31 dBm
+Retry short limit:7   RTS thr:off   Fragment thr:off
+Power Management:on
+Link Quality=70/70  Signal level=-40 dBm
+Rx invalid nwid:0  Rx invalid crypt:0  Rx invalid frag:0
+Tx excessive retries:317  Invalid misc:0   Missed beacon:0"""
+        }
+
+        for iface, data in test_ifaces.items():
+            exec_cmd_mock.return_value = data
+
+            net_info: dict[str, int] = context.app.infrastructure.cmd.get_net_info(iface)
+            assert "bit_rate" in net_info, f"Interface {iface} does not have bit rate"

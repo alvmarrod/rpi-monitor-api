@@ -1,0 +1,44 @@
+[
+    {
+        "id": 1,
+        "name": "Allowed - ls",
+        "command": "ls",
+        "allowed": true
+    },
+    {
+        "id": 2,
+        "name": "Allowed - ls -l",
+        "command": "ls -l",
+        "allowed": true
+    },
+    {
+        "id": 3,
+        "name": "Not Allowed - ls; echo 'hi'",
+        "command": "ls; echo 'hi'",
+        "allowed": false
+    },
+    {
+        "id": 4,
+        "name": "Not Allowed - dh",
+        "command": "dh",
+        "allowed": false
+    },
+    {
+        "id": 5,
+        "name": "Allowed - df",
+        "command": "df",
+        "allowed": true
+    },
+    {
+        "id": 6,
+        "name": "Allowed - df -h",
+        "command": "df -h",
+        "allowed": true
+    },
+    {
+        "id": 7,
+        "name": "Allowed - iwconfig lo",
+        "command": "iwconfig lo",
+        "allowed": true
+    }
+]

@@ -29,6 +29,10 @@ build-linux-arm: create-builder clean-image-linux-arm
 arm-image-export:
 	docker save -o $(IMAGE_NAME)_$(IMAGE_VERSION)_ARM64.tar $(IMAGE_NAME):$(IMAGE_VERSION)
 
+arm-send-to-rpi-tokyo: arm-image-export
+	scp $(IMAGE_NAME)_$(IMAGE_VERSION)_ARM64.tar rpitokyo:~/; \
+	ssh rpitokyo "docker load -i $(IMAGE_NAME)_$(IMAGE_VERSION)_ARM64.tar"; \
+	ssh rpitokyo "rm $(IMAGE_NAME)_$(IMAGE_VERSION)_ARM64.tar"
 
 run:
 	docker run \

@@ -1,13 +1,13 @@
-"""Defines the app level functions for Memory"""
+"""Defines the app level functions for Network"""
 import logging
 
 if __name__ == "__main__" or \
     __name__.startswith("domain") or \
     __name__.startswith("app.app."):
-    from app.domain import memory as domain_mem
+    from app.domain import network as domain_net
 
 elif __name__.startswith("tests."):
-    from tests.domain import memory as domain_mem
+    from tests.domain import network as domain_net
 
 else:
     logging.error("Unexpected module load: %s", __name__)
@@ -17,10 +17,9 @@ else:
 #                              Public Functions                              #
 ##############################################################################
 
-async def read_ram_info(unit: str) -> dict:
-    """Read the system Memory information and return in dictionary format,
-    in kbi parsed to integer.
+async def read_net_info(unit: str) -> dict:
+    """Read the system networking information and return in dictionary format
     
-    Will return -1 for each memory amount if any error is found"""
-    ram: domain_mem.RAMRawInfo = await domain_mem.read_ram_info()
-    return ram.as_dict(unit)
+    Will return an empty dictionary if any error is found"""
+    net: dict[str, domain_net.IfaceInfo] = await domain_net.read_net_info()
+    return net.as_dict(unit)

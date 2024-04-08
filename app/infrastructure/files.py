@@ -15,6 +15,9 @@ CPU_PROC_FILEPATH: str = '/proc/loadavg'
 
 MEM_INFO_FILEPATH: str = '/proc/meminfo'
 
+NET_INFO_FILEPATH: str = '/proc/net/dev'
+NET_INFO_HEADER_SIZE: int = 2
+
 ##############################################################################
 #                                 Aux Functions                              #
 ##############################################################################
@@ -37,6 +40,40 @@ def _process_mem_string(line: str) -> int:
             logging.error("Error trying to convert mem info into integer: %s", result[0])
 
     return kibit
+
+def _proc_net_string(line: str) -> tuple[str, dict[str, int]]:
+    """Process the given line expecting the format from /proc/net/dev file lines,
+    returning a tuple with the interface name and the data for that interface.
+    
+    Returns a tuple with empty string and empty dict if any error is found"""
+    iface: str = ""
+    iface_data: dict[str, int] = {}
+
+    try:
+
+        # Collapse spaces
+        line = ' '.join(line.split())
+
+        parts: list[str] = line.split(" ")
+
+        iface = parts[0].replace(":", "")
+        iface_data = {
+            "rec_pack"  : int([parts[2]]),
+            "rec_bytes" : int([parts[1]]),
+            "rec_err"   : int([parts[3]]),
+            "rec_drop"  : int([parts[4]]),
+
+            "snd_pack"  : int([parts[10]]),
+            "snd_bytes" : int([parts[9]]),
+            "snd_err"   : int([parts[11]]),
+            "snd_drop"  : int([parts[12]])
+        }
+
+
+    except Exception as err:
+        logging.error("Error trying to process net info: %s", err)
+
+    return iface, iface_data
 
 ##############################################################################
 #                              Public Functions                              #
@@ -104,3 +141,28 @@ async def get_mem_info() -> dict[str, int]:
         logging.warning("Unexpected error:\n%s", err)
 
     return mem_info
+
+async def get_net_info() -> dict[str, dict[str, int]]:
+    """Read the system network interfaces information and return in dictionary format.
+    
+    Will return an empty dict if any error is found."""
+    net_info: dict[str, dict[str, int]] = {}
+
+    try:
+        header: int = 0
+        with open(NET_INFO_FILEPATH, 'r', encoding='utf8') as net_reader:
+            iface_name: str
+            iface_data: dict[str, int]
+
+            for line in net_reader:
+                if header < NET_INFO_HEADER_SIZE:
+                    header += 1
+                    continue
+
+                iface_name, iface_data = _proc_net_string(line)
+                net_info[iface_name] = iface_data
+
+    except Exception as err:
+        logging.warning("Unexpected error:\n%s", err)
+
+    return net_info

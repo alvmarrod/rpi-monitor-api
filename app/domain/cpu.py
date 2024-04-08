@@ -59,6 +59,6 @@ async def read_cpu_info() -> CPULoadAvgs:
         load_avgs.m15 = _transform_cpu_load_percentage(cpu_avg_loads["15m"], cpu_cores)
 
     except Exception as err:
-        logging.warning("Unexpected error:\n%s", err)
+        logging.warning("Unexpected error reading CPU info:\n%s", str(err))
 
     return load_avgs
